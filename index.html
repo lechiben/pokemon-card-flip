@@ -8,7 +8,242 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Axios for API calls -->
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
-    <link rel="stylesheet" href="styles.css" />
+    <style>
+      /* Dark mode styles */
+      .dark {
+        background-color: #1a202c;
+        color: #f7fafc;
+      }
+
+      .dark .bg-white {
+        background-color: #2d3748;
+      }
+
+      .dark .text-gray-900 {
+        color: #f7fafc;
+      }
+
+      .dark .bg-gray-100 {
+        background-color: #2d3748;
+      }
+
+      .dark .bg-gray-800 {
+        background-color: #2d3748;
+      }
+
+      .dark .bg-gray-700 {
+        background-color: #4a5568;
+      }
+
+      .dark .memory-card .card-front {
+        background-color: #4a5568;
+      }
+
+      .dark .card-back {
+        background-color: #2b6cb0;
+      }
+
+      .dark .pokemon-name {
+        background-color: rgba(45, 55, 72, 0.8);
+        color: #f7fafc;
+      }
+
+      .dark button {
+        background-color: #4a5568;
+        color: #f7fafc;
+        border: 1px solid #718096;
+      }
+
+      .dark button:hover:not(:disabled) {
+        background-color: #718096;
+      }
+
+      .dark .game-message {
+        background-color: #2d3748;
+        border: 1px solid #4a5568;
+      }
+
+      .dark .loading-spinner {
+        border: 4px solid rgba(255, 255, 255, 0.1);
+        border-top-color: #63b3ed;
+      }
+
+      .dark select {
+        background-color: #4a5568;
+        color: #f7fafc;
+        border: 1px solid #718096;
+      }
+
+      /* Card styles */
+      .memory-card {
+        perspective: 1000px;
+        cursor: pointer;
+        height: 150px;
+        width: 100px;
+        position: relative;
+        transform-style: preserve-3d;
+        transition: transform 0.5s;
+      }
+
+      .memory-card.flipped {
+        transform: rotateY(180deg);
+      }
+
+      .memory-card.matched {
+        transform: rotateY(180deg);
+        opacity: 1;
+      }
+
+      .card-front,
+      .card-back {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        border-radius: 8px;
+        backface-visibility: hidden;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      }
+
+      .card-front {
+        background-color: #f0f4f8;
+        transform: rotateY(180deg);
+        overflow: hidden;
+      }
+
+      .card-back {
+        background-color: #4a5568;
+        background-image: url("https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/poke-ball.png");
+        background-repeat: no-repeat;
+        background-position: center;
+        background-size: 50px 50px;
+      }
+
+      .card-front img {
+        max-width: 80%;
+        max-height: 80%;
+        object-fit: contain;
+      }
+
+      .card-front .pokemon-name {
+        position: absolute;
+        bottom: 5px;
+        left: 0;
+        right: 0;
+        text-align: center;
+        font-size: 0.8rem;
+        background-color: rgba(255, 255, 255, 0.8);
+        padding: 2px;
+        text-transform: capitalize;
+      }
+
+      /* Animations */
+      @keyframes shake {
+        0%,
+        100% {
+          transform: rotateY(180deg) translateX(0);
+        }
+        25% {
+          transform: rotateY(180deg) translateX(-5px);
+        }
+        75% {
+          transform: rotateY(180deg) translateX(5px);
+        }
+      }
+
+      .shake {
+        animation: shake 0.5s;
+      }
+
+      @keyframes matched-animation {
+        0% {
+          transform: rotateY(180deg) scale(1);
+        }
+        50% {
+          transform: rotateY(180deg) scale(1.1);
+        }
+        100% {
+          transform: rotateY(180deg) scale(1);
+        }
+      }
+
+      .matched-animation {
+        animation: matched-animation 0.5s;
+      }
+
+      /* Button disabled style */
+      button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+
+      /* Power up flash effect */
+      .power-up {
+        animation: flash 0.5s infinite;
+      }
+
+      @keyframes flash {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.5;
+        }
+      }
+
+      /* Grid layouts */
+      .grid-easy {
+        grid-template-columns: repeat(3, 1fr);
+        grid-template-rows: repeat(2, 1fr);
+      }
+
+      .grid-medium {
+        grid-template-columns: repeat(4, 1fr);
+        grid-template-rows: repeat(3, 1fr);
+      }
+
+      .grid-hard {
+        grid-template-columns: repeat(6, 1fr);
+        grid-template-rows: repeat(4, 1fr);
+      }
+
+      /* Responsive adjustments */
+      @media (max-width: 640px) {
+        .memory-card {
+          height: 120px;
+          width: 80px;
+        }
+
+        .grid-hard {
+          grid-template-columns: repeat(4, 1fr);
+          grid-template-rows: repeat(6, 1fr);
+        }
+      }
+
+      /* Loading spinner */
+      .loading-spinner {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        border: 4px solid rgba(0, 0, 0, 0.1);
+        border-top-color: #3498db;
+        animation: spin 1s infinite linear;
+        margin: 0 auto;
+      }
+
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+    </style>
+    <style src="styles.css"></style>
   </head>
   <body
     class="bg-gray-100 flex flex-col items-center p-4 min-h-screen transition-colors duration-300"
@@ -16,7 +251,9 @@
   >
     <header class="w-full max-w-4xl mb-6">
       <div class="flex flex-col sm:flex-row justify-between items-center mb-4">
-        <h1 class="text-3xl font-bold mb-2 sm:mb-0">Pokémon Memory Game</h1>
+        <h1 class="text-3xl font-bold mb-2 sm:mb-0 text-gray-900">
+          Pokémon Memory Game
+        </h1>
         <div class="flex gap-2">
           <button
             id="theme-toggle"
@@ -28,19 +265,19 @@
       </div>
 
       <div
-        class="flex flex-wrap items-center justify-between bg-white dark:bg-gray-800 rounded-lg p-4 shadow-md"
+        class="flex flex-wrap items-center justify-between bg-white rounded-lg p-4 shadow-md"
       >
         <!-- Game stats -->
         <div class="flex flex-wrap gap-4 mb-2 sm:mb-0">
-          <div class="bg-gray-100 dark:bg-gray-700 px-3 py-2 rounded-md">
+          <div class="bg-gray-100 px-3 py-2 rounded-md">
             <span class="font-bold">Clicks:</span>
             <span id="clicks-count">0</span>
           </div>
-          <div class="bg-gray-100 dark:bg-gray-700 px-3 py-2 rounded-md">
+          <div class="bg-gray-100 px-3 py-2 rounded-md">
             <span class="font-bold">Pairs matched:</span>
             <span id="pairs-matched">0</span>/<span id="total-pairs">0</span>
           </div>
-          <div class="bg-gray-100 dark:bg-gray-700 px-3 py-2 rounded-md">
+          <div class="bg-gray-100 px-3 py-2 rounded-md">
             <span class="font-bold">Time left:</span>
             <span id="timer">00:00</span>
           </div>
@@ -48,10 +285,7 @@
 
         <!-- Game controls -->
         <div class="flex flex-wrap gap-2">
-          <select
-            id="difficulty"
-            class="px-3 py-2 border rounded-md bg-white dark:bg-gray-700 dark:text-white"
-          >
+          <select id="difficulty" class="px-3 py-2 border rounded-md bg-white">
             <option value="easy">Easy</option>
             <option value="medium">Medium</option>
             <option value="hard">Hard</option>
@@ -86,11 +320,8 @@
         <p class="text-xl">Select difficulty and press Start to begin...</p>
       </div>
 
-      <div
-        id="game-board"
-        class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 justify-items-center"
-      >
-        <!-- Cards will be added here dynamically -->
+      <div id="game-board" class="grid gap-4 justify-items-center">
+        <!-- Cards will be added here -->
       </div>
 
       <div
@@ -98,7 +329,7 @@
         class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center hidden"
       >
         <div
-          class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg max-w-md w-full text-center"
+          class="bg-white p-8 rounded-lg shadow-lg max-w-md w-full text-center"
         >
           <h2 id="message-title" class="text-2xl font-bold mb-4">
             Message Title
@@ -113,7 +344,7 @@
         </div>
       </div>
     </main>
-    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+
     <script src="game.js"></script>
   </body>
 </html>

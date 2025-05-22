@@ -10,9 +10,9 @@ const gameState = {
   timer: null,
   timeLeft: 0,
   difficulty: {
-    easy: { pairs: 6, time: 120 },
-    medium: { pairs: 8, time: 90 },
-    hard: { pairs: 12, time: 60 },
+    easy: { pairs: 3, rows: 2, columns: 3, time: 120 }, // 2x3 grid
+    medium: { pairs: 6, rows: 3, columns: 4, time: 90 }, // 3x4 grid
+    hard: { pairs: 12, rows: 4, columns: 6, time: 60 }, // 4x6 grid
   },
   powerupAvailable: true,
 };
@@ -51,32 +51,24 @@ function setupEventListeners() {
   messageButton.addEventListener("click", closeMessage);
 }
 
-// Load theme from localStorage
+// Load theme from memory (no localStorage in artifacts)
 function loadTheme() {
-  const darkMode = localStorage.getItem("darkMode") === "true";
-  if (darkMode) {
-    appContainer.classList.add("dark");
-    themeIcon.textContent = "☀️";
-  } else {
-    appContainer.classList.remove("dark");
-    themeIcon.textContent = "🌙";
-  }
+  // Default to light mode since we can't use localStorage
+  appContainer.classList.remove("dark");
+  themeIcon.textContent = "🌙";
 }
 
 // Toggle theme
 function toggleTheme() {
   const isDark = appContainer.classList.toggle("dark");
   themeIcon.textContent = isDark ? "☀️" : "🌙";
-  localStorage.setItem("darkMode", isDark);
 }
 
 // Start the game
 async function startGame() {
   try {
-    // Reset game state
     resetGameState();
 
-    // Update UI
     showLoading("Loading Pokémon...");
     startButton.disabled = true;
     resetButton.disabled = false;
@@ -84,12 +76,17 @@ async function startGame() {
 
     // Get difficulty settings
     const difficulty = difficultySelect.value;
-    gameState.totalPairs = gameState.difficulty[difficulty].pairs;
-    gameState.timeLeft = gameState.difficulty[difficulty].time;
+    const { pairs, rows, columns, time } = gameState.difficulty[difficulty];
+    gameState.totalPairs = pairs;
+    gameState.timeLeft = time;
 
     // Update UI
     totalPairs.textContent = gameState.totalPairs;
     timerElement.textContent = formatTime(gameState.timeLeft);
+
+    // Set grid layout dynamically
+    gameBoard.style.display = "grid";
+    gameBoard.className = `grid gap-4 justify-items-center grid-${difficulty}`;
 
     // Fetch Pokémon data
     const pokemonData = await fetchRandomPokemon(gameState.totalPairs);
@@ -97,16 +94,9 @@ async function startGame() {
     // Create pairs of cards
     createCards(pokemonData);
 
-    // Hide loading and show game board
     hideLoading();
-
-    // Start timer
     startTimer();
-
-    // Enable powerup button
     powerupButton.disabled = false;
-
-    // Mark game as started
     gameState.gameStarted = true;
   } catch (error) {
     console.error("Error starting game:", error);
@@ -153,66 +143,15 @@ function resetGame() {
   difficultySelect.disabled = false;
   resetButton.disabled = true;
   powerupButton.disabled = true;
-
-  // Show loading message
-  loadingElement.textContent = "Select difficulty and press Start to begin...";
+  loadingElement.innerHTML =
+    '<p class="text-xl">Select difficulty and press Start to begin...</p>';
   loadingElement.classList.remove("hidden");
   gameBoard.classList.add("hidden");
-
-  // Reset timer display
   timerElement.textContent = "00:00";
-
-  // Mark game as not started
   gameState.gameStarted = false;
 }
 
-// Fetch random unique Pokémon
-// async function fetchRandomPokemon(count) {
-//   // Show loading indicator
-//   showLoading("Fetching Pokémon...");
-
-//   try {
-//     // First, get the total count of available Pokémon
-//     const response = await axios.get(
-//       "https://pokeapi.co/api/v2/pokemon?"
-//     );
-//     const totalPokemon = response.data.count;
-
-//     // Generate unique random IDs
-//     const uniqueIds = new Set();
-//     while (uniqueIds.size < count) {
-//       // Generate IDs between 1 and totalPokemon
-//       const id = Math.floor(Math.random() * totalPokemon) + 1;
-//       uniqueIds.add(id);
-//     }
-
-//     // Convert Set to Array
-//     const pokemonIds = Array.from(uniqueIds);
-
-//     // Create an array of promises for fetching Pokémon data
-//     const pokemonPromises = pokemonIds.map((id) =>
-//       axios.get(`https://pokeapi.co/api/v2/pokemon/${id}`)
-//     );
-
-//     // Wait for all promises to resolve
-//     const responses = await Promise.all(pokemonPromises);
-
-//     // Extract relevant data from responses
-//     return responses.map((response) => {
-//       const { id, name, sprites } = response.data;
-
-//       // Get the sprite URL (use official artwork if available, otherwise use default sprite)
-//       const spriteUrl =
-//         sprites.other?.["official-artwork"]?.front_default ||
-//         sprites.front_default;
-
-//       return { id, name, spriteUrl };
-//     });
-//   } catch (error) {
-//     console.error("Error fetching Pokémon:", error);
-//     throw new Error("Failed to fetch Pokémon data");
-//   }
-// }
+// Fetch random unique Pokémon (first 151)
 async function fetchRandomPokemon(count) {
   showLoading("Fetching Pokémon...");
   try {
@@ -223,7 +162,7 @@ async function fetchRandomPokemon(count) {
 
     const uniqueIds = new Set();
     while (uniqueIds.size < count) {
-      const id = Math.floor(Math.random() * Math.min(totalPokemon, 151)) + 1; // Cap at 1000
+      const id = Math.floor(Math.random() * Math.min(totalPokemon, 151)) + 1;
       uniqueIds.add(id);
     }
 
@@ -238,75 +177,54 @@ async function fetchRandomPokemon(count) {
       const spriteUrl =
         sprites.other?.["official-artwork"]?.front_default ||
         sprites.front_default ||
-        "https://via.placeholder.com/100"; // Fallback image
+        "https://via.placeholder.com/100";
       if (!spriteUrl) {
         throw new Error(`No valid sprite for Pokémon ID ${id}`);
       }
       return { id, name, spriteUrl };
     });
   } catch (error) {
-    console.error("Error fetching Pokémon:", {
-      message: error.message,
-      status: error.response?.status,
-      data: error.response?.data,
-      config: error.config,
-    });
+    console.error("Error fetching Pokémon:", error);
     throw new Error("Failed to fetch Pokémon data");
   }
 }
 
 // Create cards and add them to the game board
 function createCards(pokemonData) {
-  // Double the array to create pairs
   const pairedPokemon = [...pokemonData, ...pokemonData];
-
-  // Shuffle the array
   const shuffledPokemon = shuffleArray(pairedPokemon);
-
-  // Create a document fragment to minimize DOM operations
   const fragment = document.createDocumentFragment();
 
-  // Create cards for each Pokémon
   shuffledPokemon.forEach((pokemon, index) => {
     const card = document.createElement("div");
     card.className = "memory-card";
     card.dataset.id = pokemon.id;
     card.dataset.index = index;
 
-    // Create card front (Pokémon image)
+    // Card front (Pokémon image)
     const cardFront = document.createElement("div");
     cardFront.className = "card-front";
-
     const pokemonImage = document.createElement("img");
     pokemonImage.src = pokemon.spriteUrl;
     pokemonImage.alt = pokemon.name;
-
     const pokemonName = document.createElement("div");
     pokemonName.className = "pokemon-name";
     pokemonName.textContent = pokemon.name;
-
     cardFront.appendChild(pokemonImage);
     cardFront.appendChild(pokemonName);
 
-    // Create card back (Pokéball image)
+    // Card back (Pokéball or placeholder)
     const cardBack = document.createElement("div");
     cardBack.className = "card-back";
 
-    // Add front and back to card
     card.appendChild(cardFront);
     card.appendChild(cardBack);
 
-    // Add click event listener
     card.addEventListener("click", () => handleCardClick(card));
-
-    // Add card to fragment
     fragment.appendChild(card);
-
-    // Add card to game state
     gameState.cards.push(card);
   });
 
-  // Add all cards to game board at once
   gameBoard.innerHTML = "";
   gameBoard.appendChild(fragment);
   gameBoard.classList.remove("hidden");
@@ -314,7 +232,6 @@ function createCards(pokemonData) {
 
 // Handle card click
 function handleCardClick(card) {
-  // Ignore clicks if game is locked, card is already flipped or matched
   if (
     gameState.isLocked ||
     card.classList.contains("flipped") ||
@@ -323,23 +240,13 @@ function handleCardClick(card) {
   ) {
     return;
   }
-
-  // Increment click counter
   gameState.clicks++;
   clicksCount.textContent = gameState.clicks;
-
-  // Flip the card
   card.classList.add("flipped");
-
-  // Add card to flipped cards array
   gameState.flippedCards.push(card);
 
-  // Check if we have flipped two cards
   if (gameState.flippedCards.length === 2) {
-    // Lock the game temporarily
     gameState.isLocked = true;
-
-    // Check for a match
     setTimeout(checkForMatch, 500);
   }
 }
@@ -347,40 +254,30 @@ function handleCardClick(card) {
 // Check if the two flipped cards match
 function checkForMatch() {
   const [card1, card2] = gameState.flippedCards;
-
-  // Get Pokémon IDs from the cards
   const id1 = card1.dataset.id;
   const id2 = card2.dataset.id;
 
-  // Check if IDs match
   if (id1 === id2) {
-    // Cards match
+    // Cards match - keep them flipped and mark as matched
     card1.classList.add("matched", "matched-animation");
     card2.classList.add("matched", "matched-animation");
-
-    // Increment matched pairs counter
+    card1.classList.remove("flipped"); // Remove flipped class since matched handles the rotation
+    card2.classList.remove("flipped");
     gameState.matchedPairs++;
     pairsMatched.textContent = gameState.matchedPairs;
-
-    // Check if game is won
     if (gameState.matchedPairs === gameState.totalPairs) {
-      gameWon();
+      setTimeout(gameWon, 500);
     }
   } else {
-    // Cards don't match, flip them back
+    // Cards don't match - shake and flip back
     card1.classList.add("shake");
     card2.classList.add("shake");
-
     setTimeout(() => {
       card1.classList.remove("flipped", "shake");
       card2.classList.remove("flipped", "shake");
     }, 500);
   }
-
-  // Clear flipped cards array
   gameState.flippedCards = [];
-
-  // Unlock the game
   setTimeout(() => {
     gameState.isLocked = false;
   }, 500);
@@ -388,10 +285,7 @@ function checkForMatch() {
 
 // Handle game won
 function gameWon() {
-  // Stop the timer
   clearInterval(gameState.timer);
-
-  // Show win message
   const timeUsed =
     gameState.difficulty[difficultySelect.value].time - gameState.timeLeft;
   showMessage(
@@ -401,8 +295,6 @@ function gameWon() {
     } clicks and ${formatTime(timeUsed)}!`,
     "Play Again"
   );
-
-  // Reset game state for next game
   gameState.gameStarted = false;
   resetButton.disabled = false;
   startButton.disabled = false;
@@ -412,17 +304,12 @@ function gameWon() {
 
 // Handle game over (time's up)
 function gameOver() {
-  // Stop the timer
   clearInterval(gameState.timer);
-
-  // Show game over message
   showMessage(
     "Time's Up!",
     `You matched ${gameState.matchedPairs} out of ${gameState.totalPairs} pairs.`,
     "Try Again"
   );
-
-  // Reset game state for next game
   gameState.gameStarted = false;
   resetButton.disabled = false;
   startButton.disabled = false;
@@ -432,23 +319,11 @@ function gameOver() {
 
 // Start the timer
 function startTimer() {
-  // Clear any existing timer
-  if (gameState.timer) {
-    clearInterval(gameState.timer);
-  }
-
-  // Update timer display
+  if (gameState.timer) clearInterval(gameState.timer);
   timerElement.textContent = formatTime(gameState.timeLeft);
-
-  // Start the timer
   gameState.timer = setInterval(() => {
-    // Decrement time left
     gameState.timeLeft--;
-
-    // Update timer display
     timerElement.textContent = formatTime(gameState.timeLeft);
-
-    // Check if time's up
     if (gameState.timeLeft <= 0) {
       gameOver();
     }
@@ -466,27 +341,16 @@ function formatTime(seconds) {
 
 // Activate power-up (reveal all cards briefly)
 function activatePowerup() {
-  if (!gameState.powerupAvailable || !gameState.gameStarted) {
-    return;
-  }
-
-  // Disable powerup button
+  if (!gameState.powerupAvailable || !gameState.gameStarted) return;
   powerupButton.disabled = true;
   gameState.powerupAvailable = false;
-
-  // Add power-up effect to button
   powerupButton.classList.add("power-up");
-
-  // Flip all cards that aren't already matched
   gameState.cards.forEach((card) => {
     if (!card.classList.contains("matched")) {
       card.classList.add("flipped");
     }
   });
-
-  // Show cards for 3 seconds
   setTimeout(() => {
-    // Flip back all cards that aren't matched or in the flippedCards array
     gameState.cards.forEach((card) => {
       if (
         !card.classList.contains("matched") &&
@@ -495,8 +359,6 @@ function activatePowerup() {
         card.classList.remove("flipped");
       }
     });
-
-    // Remove power-up effect
     powerupButton.classList.remove("power-up");
   }, 3000);
 }
@@ -504,9 +366,9 @@ function activatePowerup() {
 // Show loading message
 function showLoading(message) {
   loadingElement.innerHTML = `
-      <div class="loading-spinner mb-4"></div>
-      <p class="text-xl">${message}</p>
-    `;
+          <div class="loading-spinner mb-4"></div>
+          <p class="text-xl">${message}</p>
+        `;
   loadingElement.classList.remove("hidden");
   gameBoard.classList.add("hidden");
 }
